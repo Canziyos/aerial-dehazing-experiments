@@ -186,13 +186,7 @@ def main():
         train_dataloader = DataLoader(train_dataset, batch_size = BATCH_SIZE, shuffle=True)
         start = 0
         
-
-        print("Bla bla loop...")
         for iteration, images in enumerate(train_dataloader):            
-            # mse = nn.MSELoss().cuda(GPU)   
-            # mae = nn.L1Loss().cuda(GPU) 
-            
-            print("Variable...")
             gt = Variable(images['dehazed_image'] - 0.5).to(device)
             images_lv1 = Variable(images['hazed_image'] - 0.5).to(device)
 
@@ -206,14 +200,12 @@ def main():
                 decoder_lv3,
             )
 
-            print("loss level 1...")
             # CustomLoss_function returns the total loss plus diagnostic components.
             # DMPHN training currently uses only the total loss for backpropagation.
             loss_lv1, _, _, _ = custom_loss_fn(dehazed_image, gt)
 
             loss = loss_lv1
             
-            print("encoder...")
             encoder_lv1.zero_grad()
             encoder_lv2.zero_grad()
             encoder_lv3.zero_grad()
@@ -222,10 +214,8 @@ def main():
             decoder_lv2.zero_grad()
             decoder_lv3.zero_grad()
 
-            print("Loss backward...")
             loss.backward()
 
-            print("Step...")
             encoder_lv1_optim.step()
             encoder_lv2_optim.step()
             encoder_lv3_optim.step()
@@ -233,7 +223,7 @@ def main():
             decoder_lv1_optim.step()
             decoder_lv2_optim.step()
             decoder_lv3_optim.step() 
-            print("if statement...")
+
             if (iteration+1)%10 == 0:
                 stop = time.time()
                 print("epoch:", epoch, "iteration:", iteration+1, "loss:%.4f"%loss.item(), 'time:%.4f'%(stop-start))
