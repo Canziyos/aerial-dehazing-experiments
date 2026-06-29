@@ -1,16 +1,14 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import os
 import math
 import argparse
-import random
 import torchvision
-from torch.utils.data import Dataset, DataLoader
-from torchvision import transforms, datasets
+from torch.utils.data import DataLoader
+from torchvision import transforms
 import time
 from _bootstrap import ensure_src_path
 
@@ -170,6 +168,12 @@ def main():
         decoder_lv3_scheduler.step(epoch)     
         
         print("Training...")
+        encoder_lv1.train()
+        encoder_lv2.train()
+        encoder_lv3.train()
+        decoder_lv1.train()
+        decoder_lv2.train()
+        decoder_lv3.train()
         
         train_dataset = NH_HazeDataset(
             hazed_image_files = "dataset/hazy.txt",     # Updated path
@@ -234,6 +238,12 @@ def main():
             	os.system('mkdir ./checkpoints/' + METHOD + '/epoch' + str(epoch))
             
             print("Testing...")
+            encoder_lv1.eval()
+            encoder_lv2.eval()
+            encoder_lv3.eval()
+            decoder_lv1.eval()
+            decoder_lv2.eval()
+            decoder_lv3.eval()
             test_dataset = NH_HazeDataset(
                 hazed_image_files = 'dataset/val_hazy.txt',  # Path to the list of hazy image files
                 dehazed_image_files = 'dataset/val_GT.txt',  # Path to the list of ground truth files
