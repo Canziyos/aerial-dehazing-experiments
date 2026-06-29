@@ -187,8 +187,8 @@ def main():
         start = 0
         
         for iteration, images in enumerate(train_dataloader):            
-            gt = Variable(images['dehazed_image'] - 0.5).to(device)
-            images_lv1 = Variable(images['hazed_image'] - 0.5).to(device)
+            gt = (images['dehazed_image'] - 0.5).to(device)
+            images_lv1 = (images['hazed_image'] - 0.5).to(device)
 
             dehazed_image = forward_dmphn(
                 images_lv1,
@@ -248,8 +248,8 @@ def main():
             test_time = 0.0       		
             for iteration, images in enumerate(test_dataloader):
                 with torch.no_grad():
-                    images_lv1 = Variable(images['hazed_image'] - 0.5).to(device)
-                    gt = Variable(images['dehazed_image'] - 0.5).to(device)
+                    images_lv1 = (images['hazed_image'] - 0.5).to(device)
+                    gt = (images['dehazed_image'] - 0.5).to(device)
                     start = time.time()
 
                     dehazed_image = forward_dmphn(
