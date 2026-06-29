@@ -192,9 +192,9 @@ def main():
             dehazed_image = decoder_lv1(feature_lv1)
 
             print("loss level 1...")
-            loss_lv1 = custom_loss_fn(dehazed_image,gt)
-
-            # loss_lv1 = 0.4*mse(dehazed_image, gt) + 0.6*mae(dehazed_image, gt)     
+            # CustomLoss_function returns the total loss plus diagnostic components.
+            # DMPHN training currently uses only the total loss for backpropagation.
+            loss_lv1, _, _, _ = custom_loss_fn(dehazed_image, gt)
 
             loss = loss_lv1
             
