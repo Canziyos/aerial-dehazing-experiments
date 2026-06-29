@@ -10,7 +10,11 @@ import torch.nn.utils.prune as prune
 import torchvision.transforms as T  # <-- Still "T"
 from torchmetrics.image import PeakSignalNoiseRatio
 from torch.utils.data import DataLoader, TensorDataset
-import models
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from dehazing import models
 
 
 # Configuration
@@ -19,7 +23,7 @@ logging.basicConfig(level=logging.DEBUG)
 device = torch.device("cpu")
 METHOD = "DMPHN_1_2_4"
 SAMPLE_DIR = "./new_dataset/val/HAZY"
-GT_DIR = "./new_dataset/val/Gt"
+GT_DIR = "./new_dataset/val/GT"
 EXPDIR = "DMPHN_results"
 os.makedirs(f"./test_results/{EXPDIR}", exist_ok=True)
 

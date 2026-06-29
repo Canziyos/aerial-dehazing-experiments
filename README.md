@@ -16,35 +16,40 @@ Preprint: https://arxiv.org/abs/2005.05999
 ## Repository Layout
 
 ```text
-models.py
-loss.py
-datasets.py
+src/dehazing/
+  models.py
+  datasets.py
+  loss.py
 
-DMPHN_train.py
-DMPHN_test.py
-DMSHN_train.py
-DMSHN_test.py
+scripts/
+  train_dmphn.py
+  test_dmphn.py
+  train_dmshn.py
+  test_dmshn.py
+  apply_haze.py
+  apply_haze_test.py
+  create_txt.py
+  prepare_image_data.py
 
-apply_haze.py
-apply_haze_test.py
-create_txt.py
-prepare_image_data.py
-
-convert.py
-compile.py
-inference.py
-quantize_and_profile_test.py
-dmphn_dynamic_quantize.py
-dmphn_prune_quant_export.py
+edge/
+  convert.py
+  compile.py
+  inference.py
+  quantize_and_profile_test.py
+  dmphn_dynamic_quantize.py
+  dmphn_prune_quant_export.py
 
 assets/
 dataset/
 new_dataset/
+examples/
 ```
+
+`src/dehazing/` contains reusable model code. `scripts/` contains training, testing, and data preparation entry points. `edge/` contains conversion, quantization, pruning, profiling, and deployment experiments.
 
 The `new_dataset/val/` folder contains a tiny validation set that can be used as a runnable demo input.
 
-Model checkpoints are intentionally ignored by Git. Keep local weights under `checkpoints/`, or publish larger checkpoint files through GitHub Releases or another external storage location.
+Model checkpoints are intentionally ignored by Git. Keep local DMPHN weights under `checkpoints/`, and keep optional DMSHN weights under `checkpoints2/` if you need to run the DMSHN scripts. Publish larger checkpoint files through GitHub Releases or another external storage location.
 
 ## Setup
 
@@ -82,13 +87,13 @@ decoder_lv3.pkl
 Run:
 
 ```powershell
-python DMPHN_test.py
+python scripts\test_dmphn.py
 ```
 
-For the DMSHN variant:
+For the DMSHN variant, place the matching local weights under `checkpoints2/DMSHN_1_2_4/`, then run:
 
 ```powershell
-python DMSHN_test.py
+python scripts\test_dmshn.py
 ```
 
 ## Training
@@ -103,9 +108,22 @@ new_dataset/train_patch_gt.txt
 Run:
 
 ```powershell
-python DMPHN_train.py
-python DMSHN_train.py
+python scripts\train_dmphn.py
+python scripts\train_dmshn.py
 ```
+
+## Edge Experiments
+
+The edge scripts expect local model artifacts such as checkpoints or `dmphn_dehazing.onnx` depending on the workflow:
+
+```powershell
+python edge\convert.py
+python edge\compile.py
+python edge\inference.py
+python edge\quantize_and_profile_test.py
+```
+
+These scripts may require the optional packages in `requirements-edge.txt`.
 
 ## Results From Original Paper
 

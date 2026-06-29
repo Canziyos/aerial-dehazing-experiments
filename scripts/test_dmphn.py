@@ -7,12 +7,16 @@ import os
 import math
 import argparse
 import random
-import models
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
 import time
 from PIL import Image
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from dehazing import models
 
 #Hyper Parameters
 METHOD = "DMPHN_1_2_4"

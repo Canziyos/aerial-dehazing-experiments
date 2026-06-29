@@ -1,6 +1,10 @@
 import torch
-import models  # Import your model definitions
 import os
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from dehazing import models
 
 
 # Check if CUDA is available, otherwise use CPU

@@ -8,13 +8,17 @@ import os
 import math
 import argparse
 import random
-import models
 import torchvision
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms, datasets
-from datasets import NH_HazeDataset
 import time
-from loss import CustomLoss_function
+from _bootstrap import ensure_src_path
+
+ensure_src_path()
+
+from dehazing import models
+from dehazing.datasets import NH_HazeDataset
+from dehazing.loss import CustomLoss_function
 
 
 parser = argparse.ArgumentParser(description="Deep Multi-Patch Hierarchical Network")
@@ -288,4 +292,3 @@ if __name__ == '__main__':
         
 
         
-
