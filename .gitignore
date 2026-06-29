@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# ML artifacts
+checkpoints/
+checkpoints2/
+checkpoints3/
+*.pkl
+*.pt
+*.pth
+*.onnx
+*.tflite
+
+# Generated outputs
+test_results/
+inferenceResults/
+runs/
+*.log
+
+# Large media outputs
+*.mp4
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
