@@ -57,6 +57,48 @@ def weight_init(m):
         m.weight.data.normal_(0, 0.01)
         m.bias.data = torch.ones(m.bias.data.size())
 
+def forward_dmphn(
+    images_lv1,
+    encoder_lv1,
+    encoder_lv2,
+    encoder_lv3,
+    decoder_lv1,
+    decoder_lv2,
+    decoder_lv3,
+):
+    """Run the DMPHN 1-2-4 forward pass."""
+    height = images_lv1.size(2)
+    width = images_lv1.size(3)
+
+    images_lv2_1 = images_lv1[:, :, 0 : height // 2, :]
+    images_lv2_2 = images_lv1[:, :, height // 2 : height, :]
+
+    images_lv3_1 = images_lv2_1[:, :, :, 0 : width // 2]
+    images_lv3_2 = images_lv2_1[:, :, :, width // 2 : width]
+    images_lv3_3 = images_lv2_2[:, :, :, 0 : width // 2]
+    images_lv3_4 = images_lv2_2[:, :, :, width // 2 : width]
+
+    feature_lv3_1 = encoder_lv3(images_lv3_1)
+    feature_lv3_2 = encoder_lv3(images_lv3_2)
+    feature_lv3_3 = encoder_lv3(images_lv3_3)
+    feature_lv3_4 = encoder_lv3(images_lv3_4)
+
+    feature_lv3_top = torch.cat((feature_lv3_1, feature_lv3_2), dim=3)
+    feature_lv3_bot = torch.cat((feature_lv3_3, feature_lv3_4), dim=3)
+    feature_lv3 = torch.cat((feature_lv3_top, feature_lv3_bot), dim=2)
+
+    residual_lv3_top = decoder_lv3(feature_lv3_top)
+    residual_lv3_bot = decoder_lv3(feature_lv3_bot)
+
+    feature_lv2_1 = encoder_lv2(images_lv2_1 + residual_lv3_top)
+    feature_lv2_2 = encoder_lv2(images_lv2_2 + residual_lv3_bot)
+    feature_lv2 = torch.cat((feature_lv2_1, feature_lv2_2), dim=2) + feature_lv3
+
+    residual_lv2 = decoder_lv2(feature_lv2)
+
+    feature_lv1 = encoder_lv1(images_lv1 + residual_lv2) + feature_lv2
+    return decoder_lv1(feature_lv1)
+
 def main():
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -113,7 +155,8 @@ def main():
         print("load decoder_lv3 success")
     
     if os.path.exists('./checkpoints/' + METHOD) == False:
-        os.system('mkdir ./checkpoints/' + METHOD)    
+        os.system('mkdir ./checkpoints/' + METHOD)
+    custom_loss_fn = CustomLoss_function().to(device)    
             
 
     print("Starting epoch loop...")
@@ -147,49 +190,21 @@ def main():
         print("Bla bla loop...")
         for iteration, images in enumerate(train_dataloader):            
             # mse = nn.MSELoss().cuda(GPU)   
-            # mae = nn.L1Loss().cuda(GPU)      
-            
-            print("custom loss...")
-            custom_loss_fn = CustomLoss_function().to(device) 
+            # mae = nn.L1Loss().cuda(GPU) 
             
             print("Variable...")
-            gt = Variable(images['dehazed_image'] - 0.5).to(device)            
-            H = gt.size(2)
-            W = gt.size(3)
-
-            print("lvl one...")
+            gt = Variable(images['dehazed_image'] - 0.5).to(device)
             images_lv1 = Variable(images['hazed_image'] - 0.5).to(device)
-            images_lv2_1 = images_lv1[:,:,0:int(H/2),:]
-            images_lv2_2 = images_lv1[:,:,int(H/2):H,:]
-            images_lv3_1 = images_lv2_1[:,:,:,0:int(W/2)]
-            images_lv3_2 = images_lv2_1[:,:,:,int(W/2):W]
-            images_lv3_3 = images_lv2_2[:,:,:,0:int(W/2)]
-            images_lv3_4 = images_lv2_2[:,:,:,int(W/2):W]
 
-            print("feature...")
-            feature_lv3_1 = encoder_lv3(images_lv3_1)
-            feature_lv3_2 = encoder_lv3(images_lv3_2)
-            feature_lv3_3 = encoder_lv3(images_lv3_3)
-            feature_lv3_4 = encoder_lv3(images_lv3_4)
-            feature_lv3_top = torch.cat((feature_lv3_1, feature_lv3_2), 3)
-            feature_lv3_bot = torch.cat((feature_lv3_3, feature_lv3_4), 3)
-            feature_lv3 = torch.cat((feature_lv3_top, feature_lv3_bot), 2)
-            residual_lv3_top = decoder_lv3(feature_lv3_top)
-            residual_lv3_bot = decoder_lv3(feature_lv3_bot)
-
-            print("feature 2...")
-            feature_lv2_1 = encoder_lv2(images_lv2_1 + residual_lv3_top)
-            print("feature 3...")
-            feature_lv2_2 = encoder_lv2(images_lv2_2 + residual_lv3_bot)
-            print("feature 4...")
-            feature_lv2 = torch.cat((feature_lv2_1, feature_lv2_2), 2) + feature_lv3
-            print("feature 5...")
-            print("feature_lv2 shape before decoder:", feature_lv2.shape)
-            residual_lv2 = decoder_lv2(feature_lv2)
-
-            print("feature level 1...")
-            feature_lv1 = encoder_lv1(images_lv1 + residual_lv2) + feature_lv2
-            dehazed_image = decoder_lv1(feature_lv1)
+            dehazed_image = forward_dmphn(
+                images_lv1,
+                encoder_lv1,
+                encoder_lv2,
+                encoder_lv3,
+                decoder_lv1,
+                decoder_lv2,
+                decoder_lv3,
+            )
 
             print("loss level 1...")
             # CustomLoss_function returns the total loss plus diagnostic components.
@@ -242,35 +257,23 @@ def main():
             test_dataloader = DataLoader(test_dataset, batch_size=1, shuffle=False)
             test_time = 0.0       		
             for iteration, images in enumerate(test_dataloader):
-                with torch.no_grad():                                   
-                    images_lv1 = Variable(images['hazed_image'] - 0.5).cuda(GPU)
+                with torch.no_grad():
+                    images_lv1 = Variable(images['hazed_image'] - 0.5).to(device)
+                    gt = Variable(images['dehazed_image'] - 0.5).to(device)
                     start = time.time()
-                    H = images_lv1.size(2)
-                    W = images_lv1.size(3)                    
-                    images_lv2_1 = images_lv1[:,:,0:int(H/2),:]
-                    images_lv2_2 = images_lv1[:,:,int(H/2):H,:]
-                    images_lv3_1 = images_lv2_1[:,:,:,0:int(W/2)]
-                    images_lv3_2 = images_lv2_1[:,:,:,int(W/2):W]
-                    images_lv3_3 = images_lv2_2[:,:,:,0:int(W/2)]
-                    images_lv3_4 = images_lv2_2[:,:,:,int(W/2):W]
-                    
-                    feature_lv3_1 = encoder_lv3(images_lv3_1)
-                    feature_lv3_2 = encoder_lv3(images_lv3_2)
-                    feature_lv3_3 = encoder_lv3(images_lv3_3)
-                    feature_lv3_4 = encoder_lv3(images_lv3_4)
-                    feature_lv3_top = torch.cat((feature_lv3_1, feature_lv3_2), 3)
-                    feature_lv3_bot = torch.cat((feature_lv3_3, feature_lv3_4), 3)
-                    feature_lv3 = torch.cat((feature_lv3_top, feature_lv3_bot), 2)
-                    residual_lv3_top = decoder_lv3(feature_lv3_top)
-                    residual_lv3_bot = decoder_lv3(feature_lv3_bot)
-                    
-                    feature_lv2_1 = encoder_lv2(images_lv2_1 + residual_lv3_top)
-                    feature_lv2_2 = encoder_lv2(images_lv2_2 + residual_lv3_bot)
-                    feature_lv2 = torch.cat((feature_lv2_1, feature_lv2_2), 2) + feature_lv3
-                    residual_lv2 = decoder_lv2(feature_lv2)
-                    
-                    feature_lv1 = encoder_lv1(images_lv1 + residual_lv2) + feature_lv2
-                    dehazed_image = decoder_lv1(feature_lv1)
+
+                    dehazed_image = forward_dmphn(
+                        images_lv1,
+                        encoder_lv1,
+                        encoder_lv2,
+                        encoder_lv3,
+                        decoder_lv1,
+                        decoder_lv2,
+                        decoder_lv3,
+                    )
+
+                    loss_lv1, _, _, _ = custom_loss_fn(dehazed_image, gt)
+                    loss = loss_lv1
 
                     stop = time.time()
                     test_time += stop - start
@@ -288,7 +291,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-        
-
-        
