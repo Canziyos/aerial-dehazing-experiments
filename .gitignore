@@ -19,10 +19,18 @@ checkpoints3/
 test_results/
 inferenceResults/
 runs/
+outputs/
 *.log
+
+data/
+*.zip
 
 # Large media outputs
 *.mp4
+.venv/
+
+checkpoints/
+!checkpoints/README.md
 
 # OS/editor
 .DS_Store

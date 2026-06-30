@@ -12,7 +12,7 @@ compile_job = hub.submit_compile_job(
 
 assert isinstance(compile_job, hub.CompileJob)
 compile_job.wait()
-print("✅ Model compiled successfully for QCS8550 NPU!")
+print("Model compiled successfully for QCS8550 NPU!")
 
 
 profile_job = hub.submit_profile_job(

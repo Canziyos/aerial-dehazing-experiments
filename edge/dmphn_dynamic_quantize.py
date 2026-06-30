@@ -14,7 +14,7 @@ from _bootstrap import ensure_src_path
 
 ensure_src_path()
 
-from dehazing import models
+from old.dehazing import models
 
 # Configuration
 logging.getLogger('PIL').setLevel(logging.WARNING)

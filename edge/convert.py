@@ -4,7 +4,7 @@ from _bootstrap import ensure_src_path
 
 ensure_src_path()
 
-from dehazing import models
+from src.dehazing import models
 
 
 # Check if CUDA is available, otherwise use CPU

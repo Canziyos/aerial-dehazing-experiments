@@ -1,143 +1,93 @@
 # Aerial Dehazing Experiments
 
-This repository extends the original [Nonhomogeneous Image Dehazing](https://github.com/diptamath/Nonhomogeneous_Image_Dehazing.git) implementation by adapting the training and data workflow for aerial image dehazing experiments using synthetic haze generation and VSAI-style aerial imagery.
+Clean rebuild of the aerial dehazing pipeline around two rebuilt model variants:
 
-The project builds on the Fast Deep Multi-patch Hierarchical Network for Nonhomogeneous Image Dehazing, accepted at the NTIRE Workshop, CVPR 2020.
+- `DMPHN124` — Deep Multi-Patch Hierarchical Network, 1-2-4 variant.
+- `DMSHN124` — Deep Multi-Scale Hierarchical Network, 1-2-4 variant.
+
+The repository keeps model architecture, data loading, training, inference, evaluation, and scripts separated.
+
+## Layout
+
+```text
+aerial-dehazing-experiments/
+  dehazing/
+    architectures/
+    data/
+    evaluation/
+    inference/
+    losses/
+    modules/
+    training/
+  scripts/
+  docs/
+  dataset/
+  new_dataset/
+  tmp_dataset/
+```
+
+## Important tensor convention
+
+- Dataset tensors are loaded in `[0, 1]`.
+- Training and inference subtract `0.5` before model input.
+- Model output is in model-domain space and is not guaranteed to be image-range.
+- Inference adds `0.5`, clamps to `[0, 1]`, and saves the result.
+
+## Main commands
+
+Print model information:
+
+```powershell
+python -m scripts.model_info --model DMPHN124
+python -m scripts.model_info --model DMSHN124
+```
+
+Run the smoke training test:
+
+```powershell
+python -m scripts.testing_train
+```
+
+Inspect paired dataset lists:
+
+```powershell
+python -m scripts.inspect_dataset --root-dir dataset --hazy-list dataset/hazy.txt --clean-list dataset/GT.txt --max-check 20
+```
+
+Train with the generic entry point:
+
+```powershell
+python -m scripts.train --model DMPHN124 --root-dir dataset --hazy-list dataset/hazy.txt --clean-list dataset/GT.txt --val-hazy-list dataset/val_hazy.txt --val-clean-list dataset/val_GT.txt --epochs 1 --batch-size 1 --device cpu --torch-threads 1 --output-dir outputs/dmphn
+```
+
+The model-specific wrappers still work:
+
+```powershell
+python -m scripts.train_dmphn --root-dir dataset --hazy-list dataset/hazy.txt --clean-list dataset/GT.txt --epochs 1 --batch-size 1 --device cpu --torch-threads 1 --output-dir outputs/dmphn
+python -m scripts.train_dmshn --root-dir dataset --hazy-list dataset/hazy.txt --clean-list dataset/GT.txt --epochs 1 --batch-size 1 --device cpu --torch-threads 1 --output-dir outputs/dmshn
+```
+
+Convert original six-file DMPHN checkpoints to one clean checkpoint:
+
+```powershell
+python -m scripts.convert_legacy_dmphn_checkpoint --legacy-dir checkpoints/DMPHN_1_2_4 --output outputs/dmphn_legacy_converted/checkpoint.pt --device cpu
+```
+
+More commands are in [`docs/commands.md`](docs/commands.md).
+
+## Status
+
+The engineering pipeline is functional: model construction, smoke training, checkpoint save/load, inference, folder inference, PSNR evaluation, and legacy DMPHN checkpoint conversion are supported.
+
+Actual output quality depends on real training. One dummy image for one epoch only proves the plumbing works; it does not prove dehazing quality. Obviously. 😄
+
+## Original project context
+
+This project was derived from the Fast Deep Multi-patch Hierarchical Network for Nonhomogeneous Image Dehazing, NTIRE Workshop, CVPR 2020.
 
 Preprint: https://arxiv.org/abs/2005.05999
 
-## What Changed
-
-- Retrained the DMPHN-based workflow for aerial image dehazing experiments.
-- Added synthetic haze generation for clean aerial imagery.
-- Added data preparation helpers for train, validation, and test file lists.
-- Added model conversion, quantization, pruning, and Qualcomm AI Hub deployment experiments.
-
-## Repository Layout
-
-```text
-src/dehazing/
-  models.py
-  datasets.py
-  loss.py
-
-scripts/
-  train_dmphn.py
-  test_dmphn.py
-  train_dmshn.py
-  test_dmshn.py
-  apply_haze.py
-  apply_haze_test.py
-  create_txt.py
-  prepare_image_data.py
-
-edge/
-  convert.py
-  compile.py
-  inference.py
-  quantize_and_profile_test.py
-  dmphn_dynamic_quantize.py
-  dmphn_prune_quant_export.py
-
-assets/
-dataset/
-new_dataset/
-examples/
-```
-
-`src/dehazing/` contains reusable model code. `scripts/` contains training, testing, and data preparation entry points. `edge/` contains conversion, quantization, pruning, profiling, and deployment experiments.
-
-The `new_dataset/val/` folder contains a tiny validation set that can be used as a runnable demo input.
-
-Model checkpoints are intentionally ignored by Git. Keep local DMPHN weights under `checkpoints/`, and keep optional DMSHN weights under `checkpoints2/` if you need to run the DMSHN scripts. Publish larger checkpoint files through GitHub Releases or another external storage location.
-
-## Setup
-
-Install the core dependencies:
-
-```powershell
-pip install -r requirements.txt
-```
-
-Optional dependencies for edge deployment and compression experiments:
-
-```powershell
-pip install -r requirements-edge.txt
-```
-
-## Running Inference
-
-Place DMPHN checkpoint files under:
-
-```text
-checkpoints/DMPHN_1_2_4/
-```
-
-Expected files:
-
-```text
-encoder_lv1.pkl
-encoder_lv2.pkl
-encoder_lv3.pkl
-decoder_lv1.pkl
-decoder_lv2.pkl
-decoder_lv3.pkl
-```
-
-Run:
-
-```powershell
-python scripts\test_dmphn.py
-```
-
-For the DMSHN variant, place the matching local weights under `checkpoints2/DMSHN_1_2_4/`, then run:
-
-```powershell
-python scripts\test_dmshn.py
-```
-
-## Training
-
-For training, image paths for train, validation, and test data should be listed in text files. For example, patch-level training expects hazy and ground-truth image paths in files such as:
-
-```text
-new_dataset/train_patch_hazy.txt
-new_dataset/train_patch_gt.txt
-```
-
-Run:
-
-```powershell
-python scripts\train_dmphn.py
-python scripts\train_dmshn.py
-```
-
-## Edge Experiments
-
-The edge scripts expect local model artifacts such as checkpoints or `dmphn_dehazing.onnx` depending on the workflow:
-
-```powershell
-python edge\convert.py
-python edge\compile.py
-python edge\inference.py
-python edge\quantize_and_profile_test.py
-```
-
-These scripts may require the optional packages in `requirements-edge.txt`.
-
-## Results From Original Paper
-
-Quantitative results:
-
-<img src="assets/cvpr_2.png" width="500"/>
-
-Qualitative results:
-
-![](assets/cvpr_1.png)
-
-## Citation
-
-Please cite the original paper if this project helps your research:
+Please cite the original work when appropriate:
 
 ```bibtex
 @InProceedings{Das_fast_deep_2020,
@@ -148,7 +98,3 @@ Please cite the original paper if this project helps your research:
   year = {2020}
 }
 ```
-
-## License
-
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
