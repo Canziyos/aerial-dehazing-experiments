@@ -29,6 +29,10 @@ data/
 *.mp4
 .venv/
 
+# Edge generated artifacts
+edge/artifacts/
+edge/outputs/
+
 checkpoints/
 !checkpoints/README.md
 
